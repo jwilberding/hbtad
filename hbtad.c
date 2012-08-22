@@ -211,6 +211,8 @@ int main(int argc, char *argv[])
 #define APP_COPYRIGHT   "Copyright (c) 2005 The Tcpdump Group"
 #define APP_DISCLAIMER  "THERE IS ABSOLUTELY NO WARRANTY FOR THIS PROGRAM."
 
+#define HAVE_REMOTE
+
 #include <pcap.h>
 #include <stdio.h>
 #include <string.h>
@@ -515,7 +517,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 return;
 }
 
-int load(int argc, char **argv)
+int live(int argc, char **argv)
 {
     char *dev = NULL;                   /* capture device name */
     char errbuf[PCAP_ERRBUF_SIZE];              /* error buffer */
@@ -599,4 +601,84 @@ int load(int argc, char **argv)
 
     return 0;
 }
+
+int load(int argc, char **argv)
+{
+    char *dev = NULL;                   /* capture device name */
+    char errbuf[PCAP_ERRBUF_SIZE];              /* error buffer */
+    pcap_t *handle;                             /* packet capture handle */
+
+    char filter_exp[] = "ip";           /* filter expression [3] */
+    struct bpf_program fp;                      /* compiled filter program (expression) */
+    bpf_u_int32 mask;                   /* subnet mask */
+    bpf_u_int32 net;                    /* ip */
+    int num_packets = 10;                       /* number of packets to capture */
+
+    print_app_banner();
+
+    /* check for capture device name on command-line */
+    if (argc == 2) {
+        dev = argv[1];
+    }
+    else {
+        fprintf(stderr, "error: unrecognized command-line options\n\n");
+        print_app_usage();
+        exit(EXIT_FAILURE);
+    }
+
+    // Create the source string according to the new WinPcap syntax
+    //if (pcap_createsrcstr(dev, PCAP_SRC_FILE, NULL, NULL, dumpFilename, errbuf) != 0)
+    //{
+    //    printf("Error creating a source string from file");
+    //    return -1;
+    //}
+
+    // Open the file
+    //if ((handle = pcap_open(dev, 65536, PCAP_OPENFLAG_PROMISCUOUS, 1000, NULL, errbuf)) == NULL)
+    //if ((handle = pcap_open(dev, 65536, 1, 0, errbuf)) == NULL)
+    if ((handle = pcap_open_offline(dev, errbuf)) == NULL)
+    {
+        printf("Unable to open the file");
+        return -1;
+    }
+
+    /* open capture device */
+    handle = pcap_open_live(dev, SNAP_LEN, 1, 1000, errbuf);
+    if (handle == NULL) {
+        fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
+        exit(EXIT_FAILURE);
+    }
+
+    /* make sure we're capturing on an Ethernet device [2] */
+    if (pcap_datalink(handle) != DLT_EN10MB) {
+        fprintf(stderr, "%s is not an Ethernet\n", dev);
+        exit(EXIT_FAILURE);
+    }
+
+    /* compile the filter expression */
+    if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
+        fprintf(stderr, "Couldn't parse filter %s: %s\n",
+                filter_exp, pcap_geterr(handle));
+        exit(EXIT_FAILURE);
+    }
+
+    /* apply the compiled filter */
+    if (pcap_setfilter(handle, &fp) == -1) {
+        fprintf(stderr, "Couldn't install filter %s: %s\n",
+                filter_exp, pcap_geterr(handle));
+        exit(EXIT_FAILURE);
+    }
+
+    /* now we can set our callback function */
+    pcap_loop(handle, num_packets, got_packet, NULL);
+
+    /* cleanup */
+    pcap_freecode(&fp);
+    pcap_close(handle);
+
+    printf("\nCapture complete.\n");
+
+    return 0;
+}
+
 
