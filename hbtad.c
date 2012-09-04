@@ -120,6 +120,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -187,10 +188,23 @@ struct sniff_tcp {
         u_short th_urp;                 /* urgent pointer */
 };
 
+// only care about most sig 8 bits
 int src_ip_addrs[256];
 int dst_ip_addrs[256];
+
+// only care about ports 0-1023
 int src_ports[1024];
 int dst_ports[1024];
+
+// tcp, udp, icmp, or ip
+int protocols[4];
+
+// defined above
+int packet_sizes[SNAP_LEN];
+
+// flags 8 flags, 256 combinations
+int flags[256];
+
 
 void
 got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
@@ -207,6 +221,9 @@ print_app_banner(void);
 void
 print_app_usage(void);
 
+float std_dev_mult(int **vectors, int num_vecs, int vec_len);
+float std_dev(float *vals, int n);
+
 int main(int argc, char *argv[])
 {
   int i;
@@ -215,12 +232,32 @@ int main(int argc, char *argv[])
   //printf("Extracting features..\n");
   for (i = 0; i < 256; i++)
   {
-    printf("addr: %d\t count: %d\n", i, src_ip_addrs[i]);
+    printf("saddr: %d\t count: %d\n", i, src_ip_addrs[i]);
   }
 
   for (i = 0; i < 256; i++)
   {
-    printf("addr: %d\t count: %d\n", i, dst_ip_addrs[i]);
+    printf("daddr: %d\t count: %d\n", i, dst_ip_addrs[i]);
+  }
+
+  for (i = 0; i < 1024; i++)
+  {
+    printf("sport: %d\t count: %d\n", i, src_ports[i]);
+  }
+
+  for (i = 0; i < 1024; i++)
+  {
+    printf("dport: %d\t count: %d\n", i, dst_ports[i]);
+  }
+
+  for (i = 0; i < 4; i++)
+  {
+    printf("protocol: %d\t count: %d\n", i, protocols[i]);
+  }
+
+  for (i = 0; i < SNAP_LEN; i++)
+  {
+    printf("packet size: %d\t count: %d\n", i, packet_sizes[i]);
   }
 
   printf("Mapping to metric space..\n");
@@ -408,18 +445,27 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         switch(ip->ip_p) {
                 case IPPROTO_TCP:
                   //printf("   Protocol: TCP\n");
+                  protocols[0]++;
                         break;
                 case IPPROTO_UDP:
                   //printf("   Protocol: UDP\n");
+                  protocols[1]++;
+                  packet_sizes[SIZE_ETHERNET + size_ip]++;
                         return;
                 case IPPROTO_ICMP:
                   //printf("   Protocol: ICMP\n");
+                  protocols[2]++;
+                  packet_sizes[SIZE_ETHERNET + size_ip]++;
                         return;
                 case IPPROTO_IP:
                   //printf("   Protocol: IP\n");
+                  protocols[3]++;
+                  packet_sizes[SIZE_ETHERNET + size_ip]++;
                         return;
                 default:
                   //printf("   Protocol: unknown\n");
+                  // Consider if we want to keep track of these or not
+                  packet_sizes[SIZE_ETHERNET + size_ip]++;
                         return;
         }
 
@@ -435,6 +481,8 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
                 return;
         }
 
+        flags[(int)tcp->th_flags]++;
+
         //printf("   Src port: %d\n", ntohs(tcp->th_sport));
         if (tcp->th_sport < 1024)
           src_ports[tcp->th_sport]++;
@@ -447,6 +495,16 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 
         /* compute tcp payload (segment) size */
         size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
+        //printf("Payload size: %d\n", size_payload);
+
+        if (size_payload+SIZE_ETHERNET + size_ip < SNAP_LEN)
+          packet_sizes[size_payload]++;
+        else
+          printf("PACKET OVERSIZED: %d bytes\n", size_payload+SIZE_ETHERNET+size_ip);
+
+
+        //if (size_payload > max_payload_size)
+        //  max_payload_size = size_payload;
 
         /*
          * Print payload data; it might be binary, so don't just
@@ -585,6 +643,21 @@ int load(int argc, char **argv)
       dst_ports[i] = 0;
     }
 
+    for (i = 0; i < 4; i++)
+    {
+      protocols[i] = 0;
+    }
+
+    for (i = 0; i < SNAP_LEN; i++)
+    {
+      packet_sizes[i] = 0;
+    }
+
+    for (i = 0; i < 256; i++)
+    {
+      flags[i] = 0;
+    }
+
     if ((handle = pcap_open_offline(dev, errbuf)) == NULL)
     {
         printf("Unable to open the file");
@@ -616,5 +689,82 @@ int load(int argc, char **argv)
 
     return 0;
 }
+
+// normalized euclidean distance
+float n_e_d(int *vec1, int *vec2, int len)
+{
+  int i;
+  float d = 0;
+  float sd = 0;
+  float vals[2];
+
+  for (i = 0; i < len; i++)
+  {
+    vals[0] = vec1[i];
+    vals[1] = vec2[i];
+    sd = std_dev(vals, 2);
+    d += sqrt(pow(abs(vec1[i] - vec2[i]), 2)/pow(sd,2));
+  }
+
+  return d;
+}
+
+/*float std_dev_mult(int **vectors, int num_vecs, int vec_len)
+{
+  float std_dev;
+  int *vec;
+  int i,j;
+  int sum;
+
+  // first, sum vectors to a single vector
+  vec = malloc(vec_len);
+
+  for (i = 0; i < vec_len; i++)
+  {
+    sum = 0;
+
+    for (j = 0; j < num_vecs; j++)
+    {
+      sum += vectors[j][i];
+    }
+
+    vec[i] = sum;
+  }
+
+  std_dev = std_dev(vec, vec_len);
+
+  free(vec);
+
+  return std_dev;
+  }*/
+
+float std_dev(float *vals, int n)
+{
+  int i;
+
+  if(n == 0)
+    return 0.0;
+  double sum = 0;
+  for(i = 0; i < n; ++i)
+    sum += vals[i];
+  float mean = sum / n;
+  float sq_diff_sum = 0;
+  for(i = 0; i < n; ++i) {
+    float diff = vals[i] - mean;
+    sq_diff_sum += diff * diff;
+  }
+  float variance = sq_diff_sum / n;
+  return sqrt(variance);
+}
+
+
+
+
+
+
+
+
+
+
 
 
