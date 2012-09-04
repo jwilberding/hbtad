@@ -1,105 +1,8 @@
-#include <stdio.h>
-
-int main(int argc, char *argv[])
-{
-    printf("Loading data..\n");
-    load(argc, argv);
-    printf("Extracting features..\n");
-    printf("Mapping to metric space..\n");
-    printf("Clustering..\n");
-    printf("Classifying..\n");
-    printf("Finished.\n");
-
-    return 0;
-}
-
 /*
- * sniffex.c
- *
- * Sniffer example of TCP/IP packet capture using libpcap.
+ * some code borrowed from sniffex.c
  *
  * Version 0.1.1 (2005-07-05)
  * Copyright (c) 2005 The Tcpdump Group
- *
- * This software is intended to be used as a practical example and
- * demonstration of the libpcap library; available at:
- * http://www.tcpdump.org/
- *
- ****************************************************************************
- *
- * This software is a modification of Tim Carstens' "sniffer.c"
- * demonstration source code, released as follows:
- *
- * sniffer.c
- * Copyright (c) 2002 Tim Carstens
- * 2002-01-07
- * Demonstration of using libpcap
- * timcarst -at- yahoo -dot- com
- *
- * "sniffer.c" is distributed under these terms:
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 4. The name "Tim Carstens" may not be used to endorse or promote
- *    products derived from this software without prior written permission
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- * <end of "sniffer.c" terms>
- *
- * This software, "sniffex.c", is a derivative work of "sniffer.c" and is
- * covered by the following terms:
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Because this is a derivative work, you must comply with the "sniffer.c"
- *    terms reproduced above.
- * 2. Redistributions of source code must retain the Tcpdump Group copyright
- *    notice at the top of this source file, this list of conditions and the
- *    following disclaimer.
- * 3. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 4. The names "tcpdump" or "libpcap" may not be used to endorse or promote
- *    products derived from this software without prior written permission.
- *
- * THERE IS ABSOLUTELY NO WARRANTY FOR THIS PROGRAM.
- * BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
- * FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
- * OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
- * PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
- * OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
- * TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
- * PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
- * REPAIR OR CORRECTION.
- *
- * IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
- * WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
- * REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
- * INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
- * OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
- * TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
- * YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
- * PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- * <end of "sniffex.c" terms>
  *
  ****************************************************************************
  *
@@ -206,12 +109,12 @@ int main(int argc, char *argv[])
  *
  */
 
-#define APP_NAME                "sniffex"
-#define APP_DESC                "Sniffer example using libpcap"
-#define APP_COPYRIGHT   "Copyright (c) 2005 The Tcpdump Group"
+#define APP_NAME                "hbtad"
+#define APP_DESC                "Implementation of hbtad"
+#define APP_COPYRIGHT   "Copyright (c) 2011 Jordan Wilberding"
 #define APP_DISCLAIMER  "THERE IS ABSOLUTELY NO WARRANTY FOR THIS PROGRAM."
 
-#define HAVE_REMOTE
+//#define HAVE_REMOTE
 
 #include <pcap.h>
 #include <stdio.h>
@@ -284,6 +187,11 @@ struct sniff_tcp {
         u_short th_urp;                 /* urgent pointer */
 };
 
+int src_ip_addrs[256];
+int dst_ip_addrs[256];
+int src_ports[1024];
+int dst_ports[1024];
+
 void
 got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 
@@ -298,6 +206,30 @@ print_app_banner(void);
 
 void
 print_app_usage(void);
+
+int main(int argc, char *argv[])
+{
+  int i;
+  printf("Loading data..\n");
+  load(argc, argv);
+  //printf("Extracting features..\n");
+  for (i = 0; i < 256; i++)
+  {
+    printf("addr: %d\t count: %d\n", i, src_ip_addrs[i]);
+  }
+
+  for (i = 0; i < 256; i++)
+  {
+    printf("addr: %d\t count: %d\n", i, dst_ip_addrs[i]);
+  }
+
+  printf("Mapping to metric space..\n");
+  printf("Clustering..\n");
+  printf("Classifying..\n");
+  printf("Finished.\n");
+
+  return 0;
+}
 
 /*
  * app name/banner
@@ -321,10 +253,10 @@ void
 print_app_usage(void)
 {
 
-        printf("Usage: %s [interface]\n", APP_NAME);
+        printf("Usage: %s [file]\n", APP_NAME);
         printf("\n");
         printf("Options:\n");
-        printf("    interface    Listen on <interface> for packets.\n");
+        printf("    file    Process file that contains pcap dump.\n");
         printf("\n");
 
 return;
@@ -447,6 +379,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         int size_tcp;
         int size_payload;
 
+        //printf("\rPacket number %d:", count);
         printf("\nPacket number %d:\n", count);
         count++;
 
@@ -462,25 +395,31 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
         }
 
         /* print source and destination IP addresses */
-        printf("       From: %s\n", inet_ntoa(ip->ip_src));
-        printf("         To: %s\n", inet_ntoa(ip->ip_dst));
+        //printf("       From: %s\n", inet_ntoa(ip->ip_src));
+        // we only care about lower 8 bits of the address
+        //unsigned long src_ip_addr = ip->ip_src.s_addr;
+        //printf("       From: %lu\n", src_ip_addr);
+        //printf("       From: %d\n", (int)((src_ip_addr >> 24) & 0xFF));
+        src_ip_addrs[(int)((ip->ip_src.s_addr >> 24) & 0xFF)]++;
+        //printf("         To: %s\n", inet_ntoa(ip->ip_dst));
+        dst_ip_addrs[(int)((ip->ip_dst.s_addr >> 24) & 0xFF)]++;
 
         /* determine protocol */
         switch(ip->ip_p) {
                 case IPPROTO_TCP:
-                        printf("   Protocol: TCP\n");
+                  //printf("   Protocol: TCP\n");
                         break;
                 case IPPROTO_UDP:
-                        printf("   Protocol: UDP\n");
+                  //printf("   Protocol: UDP\n");
                         return;
                 case IPPROTO_ICMP:
-                        printf("   Protocol: ICMP\n");
+                  //printf("   Protocol: ICMP\n");
                         return;
                 case IPPROTO_IP:
-                        printf("   Protocol: IP\n");
+                  //printf("   Protocol: IP\n");
                         return;
                 default:
-                        printf("   Protocol: unknown\n");
+                  //printf("   Protocol: unknown\n");
                         return;
         }
 
@@ -496,8 +435,12 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
                 return;
         }
 
-        printf("   Src port: %d\n", ntohs(tcp->th_sport));
-        printf("   Dst port: %d\n", ntohs(tcp->th_dport));
+        //printf("   Src port: %d\n", ntohs(tcp->th_sport));
+        if (tcp->th_sport < 1024)
+          src_ports[tcp->th_sport]++;
+        //printf("   Dst port: %d\n", ntohs(tcp->th_dport));
+        if (tcp->th_dport < 1024)
+          dst_ports[tcp->th_dport]++;
 
         /* define/compute tcp payload (segment) offset */
         payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
@@ -509,10 +452,10 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
          * Print payload data; it might be binary, so don't just
          * treat it as a string.
          */
-        if (size_payload > 0) {
-                printf("   Payload (%d bytes):\n", size_payload);
-                print_payload(payload, size_payload);
-        }
+        //if (size_payload > 0) {
+        //        printf("   Payload (%d bytes):\n", size_payload);
+        //        print_payload(payload, size_payload);
+        //}
 
 return;
 }
@@ -612,9 +555,12 @@ int load(int argc, char **argv)
     struct bpf_program fp;                      /* compiled filter program (expression) */
     bpf_u_int32 mask;                   /* subnet mask */
     bpf_u_int32 net;                    /* ip */
-    int num_packets = 10;                       /* number of packets to capture */
+    int num_packets = 0;                       /* number of packets to capture */
+    int i;
 
-    print_app_banner();
+    //int src_ip_addrs[256];
+
+    //print_app_banner();
 
     /* check for capture device name on command-line */
     if (argc == 2) {
@@ -626,33 +572,23 @@ int load(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    // Create the source string according to the new WinPcap syntax
-    //if (pcap_createsrcstr(dev, PCAP_SRC_FILE, NULL, NULL, dumpFilename, errbuf) != 0)
-    //{
-    //    printf("Error creating a source string from file");
-    //    return -1;
-    //}
+    // setup data values
+    for (i = 0; i < 256; i++)
+    {
+      src_ip_addrs[i] = 0;
+      dst_ip_addrs[i] = 0;
+    }
 
-    // Open the file
-    //if ((handle = pcap_open(dev, 65536, PCAP_OPENFLAG_PROMISCUOUS, 1000, NULL, errbuf)) == NULL)
-    //if ((handle = pcap_open(dev, 65536, 1, 0, errbuf)) == NULL)
+    for (i = 0; i < 1024; i++)
+    {
+      src_ports[i] = 0;
+      dst_ports[i] = 0;
+    }
+
     if ((handle = pcap_open_offline(dev, errbuf)) == NULL)
     {
         printf("Unable to open the file");
         return -1;
-    }
-
-    /* open capture device */
-    handle = pcap_open_live(dev, SNAP_LEN, 1, 1000, errbuf);
-    if (handle == NULL) {
-        fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
-        exit(EXIT_FAILURE);
-    }
-
-    /* make sure we're capturing on an Ethernet device [2] */
-    if (pcap_datalink(handle) != DLT_EN10MB) {
-        fprintf(stderr, "%s is not an Ethernet\n", dev);
-        exit(EXIT_FAILURE);
     }
 
     /* compile the filter expression */
