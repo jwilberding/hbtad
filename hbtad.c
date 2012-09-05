@@ -121,6 +121,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -223,6 +224,7 @@ print_app_usage(void);
 
 float std_dev_mult(int **vectors, int num_vecs, int vec_len);
 float std_dev(float *vals, int n);
+void mean_vec(int *m_vec, int **vecs, int num_vecs, int vec_len);
 
 int main(int argc, char *argv[])
 {
@@ -760,13 +762,75 @@ float std_dev(float *vals, int n)
 // kmeans impl, returns mapping of idx of array to cluster, make sure to free it{
 int *kmeans(int **vecs, int num_vecs, int vec_len, int num_clusters)
 {
+    int *map;   // store mapping of vectors to a cluster
+    int i,j;
+    int **mean_vecs;  // centroids
+    int dist, min_dist, min_centroid;
+    int **tmp_vecs;  // place to hold pointers to current vecs that need to compute centroid
+    int tmp_vecs_idx; // to keep track of count
+
+    if (num_vecs < num_clusters)
+    {
+        printf("ERROR! kmeans: num_vecs < num_clusters\n");
+        return NULL;
+    }
+
+    map = malloc(num_vecs*sizeof(int));
+    mean_vecs = malloc(num_clusters*vec_len*sizeof(int));
+    tmp_vecs = malloc(num_vecs*sizeof(int*));
+
+    // assume the first n vecs are the initial centroids
+    for (i = 0; i < num_clusters; i++)
+    {
+        for (j = 0; j < vec_len; j++)
+        {
+            mean_vecs[i][j] = vecs[i][j];
+        }
+    }
+
+    min_dist = INT_MAX;
+
+    // assign each vector to a cluster by distance
+    for (i = 0; i < num_vecs; i++)
+    {
+        for (j = 0; j < num_clusters; j++)
+        {
+            dist = n_e_d(vecs[i], mean_vecs[j], vec_len);
+
+            if (dist < min_dist)
+            {
+                dist = min_dist;
+                min_centroid = j;
+            }
+        }
+
+        map[i] = min_centroid;
+    }
+
+    // compute new centroids
+    for (i = 0; i < num_clusters; i++)
+    {
+        tmp_vecs_idx = 0;
+
+        for (j = 0; j < num_vecs; j++)
+        {
+            if (map[j] == i)
+            {
+                tmp_vecs[tmp_vecs_idx] = vecs[j];
+                tmp_vecs_idx++;
+            }
+        }
+
+        mean_vec(mean_vecs[i], tmp_vecs, tmp_vecs_idx, vec_len);
+    }
+
   return NULL;
 }
 
-// calculate mean vector from a set of vectors, free data when done
-int *mean_vec(int **vecs, int num_vecs, int vec_len)
+// calculate mean vector from a set of vectors, store in m_vec
+void mean_vec(int *m_vec, int **vecs, int num_vecs, int vec_len)
 {
-  int *m_vec;
+    //int *m_vec;
   int sum;
   int i,j;
 
