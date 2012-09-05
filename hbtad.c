@@ -690,7 +690,7 @@ int load(int argc, char **argv)
     return 0;
 }
 
-// normalized euclidean distance
+// normalized euclidean distance between two vectors
 float n_e_d(int *vec1, int *vec2, int len)
 {
   int i;
@@ -717,7 +717,7 @@ float n_e_d(int *vec1, int *vec2, int len)
   int sum;
 
   // first, sum vectors to a single vector
-  vec = malloc(vec_len);
+  vec = malloc(vec_len*sizeof(vec));
 
   for (i = 0; i < vec_len; i++)
   {
@@ -755,6 +755,34 @@ float std_dev(float *vals, int n)
   }
   float variance = sq_diff_sum / n;
   return sqrt(variance);
+}
+
+// kmeans impl, returns mapping of idx of array to cluster, make sure to free it{
+int *kmeans(int **vecs, int num_vecs, int vec_len, int num_clusters)
+{
+  return NULL;
+}
+
+// calculate mean vector from a set of vectors, free data when done
+int *mean_vec(int **vecs, int num_vecs, int vec_len)
+{
+  int *m_vec;
+  int sum;
+  int i,j;
+
+  m_vec = malloc(vec_len*sizeof(int));
+
+  for(i = 0; i < vec_len; i++)
+  {
+    sum = 0;
+
+    for(j = 0; j < num_vecs; j++)
+    {
+      sum += vecs[j][i];
+    }
+
+    m_vec[i] = sum/num_vecs;
+  }
 }
 
 
